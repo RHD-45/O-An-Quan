@@ -17,6 +17,7 @@ running = True
 # ASSETS ----------------------------------------------
 BG = py.image.load('ground.jpg')
 BG_COLOR = (244, 209, 98)
+TEXT_COLOR = 'red'
 FONT = py.font.Font('freesansbold.ttf', 15)
 rockimage = {
     1: py.transform.scale(py.image.load(os.path.join('Assets', '1rock.png')), (80, HEIGHT // 4 - 20)),
@@ -33,7 +34,7 @@ rockimage = {
 # ------------------------------------------------------
 
 def initialize():
-    global game
+    global game, P1, P2, field_one, field_two
     game = []
     for i in range(12):
         if i in (0, 6):
@@ -44,6 +45,16 @@ def initialize():
         game.append(square)
         square_list.append(square)
         all_sprite_list.add(square)
+    P1 = piece.Player(1, 0)
+    P2 = piece.Player(2, 0)
+
+    field_one = Field(P1,0)
+    field_two = Field(P2,0)
+
+    Field.draw_field(field_one)
+    Field.draw_field(field_two)
+    py.display.flip()
+    
     return game
 
 
@@ -110,6 +121,10 @@ def distribute(player, idx, dir):
     print('Score: ', end='')
     return player.score
 
+def rock_image_pick(rock):
+    if rock >= 7:
+        return rockimage['M']
+    return rockimage[rock]
 
 # -----------------------------------------------------------------
 
@@ -121,7 +136,7 @@ class Square(py.sprite.Sprite):
         self.rock = rock
         self.color = color
         self.surf = (80, HEIGHT // 4 - 20)
-        match num:
+        match (num):
             case 1 | 11:
                 self.x = 200
             case 2 | 10:
@@ -147,12 +162,10 @@ class Square(py.sprite.Sprite):
 
     def draw_square(self):
         py.draw.rect(SCREEN, self.color, (self.x, self.y, *self.surf), 2)  # Square border
-        text = FONT.render(str(self.rock), True, 'green')  # Number of rocks text
+        text = FONT.render(str(self.rock), True, TEXT_COLOR)  # Number of rocks text
         SCREEN.fill(BG_COLOR, (self.x + 3, self.y + 3, self.surf[0] - 10, self.surf[1] - 10))  # Square background
-        if self.rock >= 7:
-            SCREEN.blit(rockimage['M'], (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)
-        elif self.rock != 0:
-            SCREEN.blit(rockimage[self.rock], (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)  # Rock image
+        if self.rock != 0:
+            SCREEN.blit(rock_image_pick(self.rock), (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)  # Rock image
         SCREEN.blit(text, py.Rect(self.x + 3, self.y + 3, 10, 10))  # Show text
         py.display.flip()
 
@@ -181,16 +194,33 @@ class Quan(Square):
     def draw_quan(self):
         SCREEN.fill(BG_COLOR, (self.x + 3, self.y + 3, *self.surf))  # Square background
         py.draw.rect(SCREEN, self.color, (self.x, self.y, *self.surf), 2)  # Square border
-        text = FONT.render(str(self.rock + 10 * int(self.hasQuan)), True, 'green')  # Number of rocks text
+        text = FONT.render(str(self.rock + 10 * int(self.hasQuan)), True, TEXT_COLOR)  # Number of rocks text
         if self.hasQuan:
             SCREEN.blit(rockimage['Q'], (self.x, self.yQ), special_flags=py.BLEND_RGBA_MIN)
-        if self.rock >= 7:
-            SCREEN.blit(rockimage['M'], (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)
-        elif self.rock != 0:
-            SCREEN.blit(py.transform.scale(rockimage[self.rock], (80, (HEIGHT // 4 - 20) // 2)),
+        if self.rock != 0:
+            SCREEN.blit(py.transform.scale(rock_image_pick(self.rock), (80, (HEIGHT // 4 - 20) // 2)),
                         (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)  # Rock image
         SCREEN.blit(text, py.Rect(self.x + 3, self.y + 3, 10, 10))  # Show text
         py.display.flip()
+
+class Field:
+    def __init__(self, player, score):
+        self.player = player
+        self.score = score
+        match player.num:
+            case 1:
+                self.x = 100
+                self.y = 420
+            case 2:
+                self.x = 650
+                self.y = 0
+
+    def draw_field(self):
+        py.draw.rect(SCREEN, 'blue', (self.x, self.y, 100, 80), 2)
+        if self.score != 0:
+            SCREEN.blit(py.transform.scale(rock_image_pick(self.score), (100, 80)),
+                        (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)
+        py.display.flip()   # BROKENNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
 
 # ----------------------------------------------------------------------------
@@ -200,8 +230,8 @@ class Quan(Square):
 square_list = []
 all_sprite_list = py.sprite.Group()
 initialize()
-
 clock = py.time.Clock()
+
 while running:
     clock.tick(FPS)
     SCREEN.fill(BG_COLOR)  # Delete later
@@ -218,11 +248,14 @@ while running:
     for i in square_list:
         Square.draw_square(i)
 
-    P1 = piece.Player(1, 0)
-    P2 = piece.Player(2, 0)
-    score = distribute(P1, 5, 'L')
+    py.draw.rect(SCREEN, 'orange', (300,600,234,655))
+    
+    
+    field_one.score = distribute(P1, 5, 'L')
+    Field.draw_field(field_one)
     time.sleep(0.5)
-    score = distribute(P2, 3, 'R')
+    field_two.score = distribute(P2, 3, 'R')
+    Field.draw_field(field_two)
     i = input()
 
     py.display.flip()  # Delete later
