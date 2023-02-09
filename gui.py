@@ -7,7 +7,7 @@ import piece
 import time
 
 py.init()
-FPS = 60
+FPS = 120
 WIDTH = 800
 HEIGHT = 500
 SCREEN = py.display.set_mode((WIDTH, HEIGHT))
@@ -19,7 +19,7 @@ BG = py.image.load('ground.jpg')
 BG_COLOR = (244, 209, 98)
 TEXT_COLOR = 'red'
 FONT = py.font.Font('freesansbold.ttf', 15)
-rockimage = {
+rock_image = {
     1: py.transform.scale(py.image.load(os.path.join('Assets', '1rock.png')), (80, HEIGHT // 4 - 20)),
     2: py.transform.scale(py.image.load(os.path.join('Assets', '2rock.png')), (80, HEIGHT // 4 - 20)),
     3: py.transform.scale(py.image.load(os.path.join('Assets', '3rock.png')), (80, HEIGHT // 4 - 20)),
@@ -29,7 +29,10 @@ rockimage = {
     'M': py.transform.scale(py.image.load(os.path.join('Assets', 'manyrock.png')), (80, HEIGHT // 4 - 20)),
     'Q': py.transform.scale(py.image.load(os.path.join('Assets', 'quan.png')), (80, (HEIGHT // 4 - 20) // 2)),
 }
-
+arrow_image = {
+    'L': py.transform.scale(py.image.load(os.path.join('Assets', 'arrow_left.png')), (30, 15)),
+    'R': py.transform.scale(py.image.load(os.path.join('Assets', 'arrow_right.png')), (30, 15))
+}
 
 # ------------------------------------------------------
 
@@ -123,8 +126,8 @@ def distribute(player, idx, dir):
 
 def rock_image_pick(rock):
     if rock >= 7:
-        return rockimage['M']
-    return rockimage[rock]
+        return rock_image['M']
+    return rock_image[rock]
 
 # -----------------------------------------------------------------
 
@@ -196,7 +199,7 @@ class Quan(Square):
         py.draw.rect(SCREEN, self.color, (self.x, self.y, *self.surf), 2)  # Square border
         text = FONT.render(str(self.rock + 10 * int(self.hasQuan)), True, TEXT_COLOR)  # Number of rocks text
         if self.hasQuan:
-            SCREEN.blit(rockimage['Q'], (self.x, self.yQ), special_flags=py.BLEND_RGBA_MIN)
+            SCREEN.blit(rock_image['Q'], (self.x, self.yQ), special_flags=py.BLEND_RGBA_MIN)
         if self.rock != 0:
             SCREEN.blit(py.transform.scale(rock_image_pick(self.rock), (80, (HEIGHT // 4 - 20) // 2)),
                         (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)  # Rock image
@@ -207,10 +210,6 @@ class Arrow:
     def __init__(self, square, direction):
         self.square = square
         self.direction = direction
-        self.x = None
-        self.y = None
-
-    def display(self, square, direction):
         match square:
             case 1|2|3|4|5:
                 self.y = square.y + 50
@@ -222,10 +221,17 @@ class Arrow:
                 self.x = square.x - 20
             case 'R':
                 self.x = square.x + 20
+        self.rect = py.Rect(self.x, self.y, 30,15)
 
-    def click_detection(self, direction):
+    @staticmethod
+    def click_detection(arrow_list):
         pos = py.mouse.get_pos()
-        
+        clicked = [s for s in arrow_list if s.rect.collidepoint(pos)]
+        return clicked.direction if clicked else None
+
+    def draw_arrow(self):
+        py.draw.rect(SCREEN, 'white', self.rect, 1)
+        SCREEN.blit(arrow_image[self.direction], (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)
 
 class Field:
     def __init__(self, player, score):
@@ -258,8 +264,10 @@ square_list = []
 all_sprite_list = py.sprite.Group()
 initialize()
 clock = py.time.Clock()
+current_player = P1
 square_clicked = False
-arrow_clicked = False
+square_chosen = None
+arrow_chosen = None
 
 while running:
     clock.tick(FPS)
@@ -271,6 +279,18 @@ while running:
         elif event.type == py.MOUSEBUTTONDOWN:
             if not square_clicked:
                 square_chosen = Square.click_detection(square_list)
+                if square_chosen:
+                    square_clicked = True
+            else:
+                LEFT = Arrow(square_list[square_chosen], 'L')
+                RIGHT = Arrow(square_list[square_chosen], 'R')
+                arrow_chosen = Arrow.click_detection([LEFT,RIGHT])
+                if arrow_chosen:
+                    Arrow.draw_arrow(arrow_chosen)
+                    square_chosen = False
+                    del LEFT
+                    del RIGHT
+                    
                 
 
     py.draw.rect(SCREEN, (255, 255, 255), (0, HEIGHT / 2, WIDTH, 1), 2)
@@ -281,13 +301,13 @@ while running:
 
     py.draw.rect(SCREEN, 'orange', (300,600,234,655))
     
-    
+    if square_chosen and arrow_chosen:
+        current_player = P1 if current_player == P2 else P1
     field_one.score = distribute(P1, 5, 'L')
     Field.draw_field(field_one)
     time.sleep(0.5)
     field_two.score = distribute(P2, 3, 'R')
     Field.draw_field(field_two)
-    i = input()
 
     py.display.flip()  # Delete later
 
