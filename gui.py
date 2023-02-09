@@ -203,6 +203,30 @@ class Quan(Square):
         SCREEN.blit(text, py.Rect(self.x + 3, self.y + 3, 10, 10))  # Show text
         py.display.flip()
 
+class Arrow:
+    def __init__(self, square, direction):
+        self.square = square
+        self.direction = direction
+        self.x = None
+        self.y = None
+
+    def display(self, square, direction):
+        match square:
+            case 1|2|3|4|5:
+                self.y = square.y + 50
+            case _:
+                self.y = square.y
+                
+        match direction:
+            case 'L':
+                self.x = square.x - 20
+            case 'R':
+                self.x = square.x + 20
+
+    def click_detection(self, direction):
+        pos = py.mouse.get_pos()
+        
+
 class Field:
     def __init__(self, player, score):
         self.player = player
@@ -222,6 +246,9 @@ class Field:
                         (self.x, self.y), special_flags=py.BLEND_RGBA_MIN)
         py.display.flip()   # BROKENNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
 
+def player_input():
+    pass
+
 
 # ----------------------------------------------------------------------------
 
@@ -231,6 +258,8 @@ square_list = []
 all_sprite_list = py.sprite.Group()
 initialize()
 clock = py.time.Clock()
+square_clicked = False
+arrow_clicked = False
 
 while running:
     clock.tick(FPS)
@@ -240,7 +269,9 @@ while running:
         if event.type == py.QUIT:
             running = False
         elif event.type == py.MOUSEBUTTONDOWN:
-            print(Square.click_detection(square_list))
+            if not square_clicked:
+                square_chosen = Square.click_detection(square_list)
+                
 
     py.draw.rect(SCREEN, (255, 255, 255), (0, HEIGHT / 2, WIDTH, 1), 2)
     py.draw.rect(SCREEN, (255, 255, 255), (WIDTH / 2, 0, 1, HEIGHT), 2)
